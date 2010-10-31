@@ -11,8 +11,17 @@ It introduces two syntax extentions for Dokuwiki:
 Raw BiBTeX data
 </bibtex>
 
+1.1 Notes
+
+For final output to be valid XHTML
+no empty line are allowed before </bibtex>
+
+
+
 
 2. Publications selected from <bibtex> by some attributes.
+
+(Not implemented yet)
 
 <papers>
 author = pashev,

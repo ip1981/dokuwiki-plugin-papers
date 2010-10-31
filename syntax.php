@@ -26,7 +26,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 {
     function getType() { return 'protected'; }
 
-    function getPType() { return 'stack'; }
+    function getPType() { return 'block'; } // http://www.dokuwiki.org/devel:syntax_plugins#ptype
 
     function getSort() { return 102; }
 
@@ -113,7 +113,9 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
                 $year_prev = $year;
                 $type_prev = '';
-                $res .= $this->wikirender('===== ' . $year . ' ' . $this->getLang('year') . '  =====');
+                //$res .= $this->wikirender('===== ' . $year . ' ' . $this->getLang('year') . '  =====');
+                $res .= "<h2 class=\"sectionedit2\">$year "
+                    . $this->getLang('year') . "</h2>\n";
             }
 
             $type = $entry['entry'];
@@ -121,12 +123,13 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
             {
                 if ($in_list)
                 {
-                    $res .= "</ol>\n";
+                    $res .= "</ol>\n\n\n";
                     $in_list = false;
                 }
 
                 $type_prev = $type;
-                $res .= $this->wikirender('==== ' . $this->getLang($type) . '  ====');
+                //$res .= $this->wikirender('==== ' . $this->getLang($type) . '  ====');
+                $res .= '<h3 class="sectionedit3">' . $this->getLang($type) . "</h3>\n";
             }
 
             if (!$in_list)
