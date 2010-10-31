@@ -1,0 +1,21 @@
+This is a syntax plugin for Dokuwiki (http://www.dokuwiki.org/).
+
+
+
+It introduces two syntax extentions for Dokuwiki:
+
+
+1. Entire list of publications.
+
+<bibtex>
+Raw BiBTeX data
+</bibtex>
+
+
+2. Publications selected from <bibtex> by some attributes.
+
+<papers>
+author = pashev,
+year = 2005
+</papers>
+

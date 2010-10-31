@@ -1,0 +1,7 @@
+base   papers
+author Igor Pashev
+email  pashev.igor@gmail.com
+date   2010-10-14
+name   Papers plugin
+desc   Manage papers for teams of scientists
+url    http://github.com/ip1981/dokuwiki-plugin-papers
