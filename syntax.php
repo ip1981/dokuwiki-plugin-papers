@@ -16,8 +16,8 @@ if (!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN', DOKU_INC . 'lib/plugins/');
 global $conf;
 if (!defined('PAPERS_DATADIR')) define('PAPERS_DATADIR', DOKU_INC . $conf['savedir'] . '/media/');
 
-define('PLUGIN_SELF', dirname(__FILE__) . '/');
 
+require_once (DOKU_INC . 'inc/pageutils.php');
 require_once (DOKU_INC . 'inc/parserutils.php');
 require_once (DOKU_PLUGIN . 'syntax.php');
 require_once (DOKU_PLUGIN . 'papers/bibtex.php');
@@ -33,8 +33,8 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
     function connectTo($mode)
     {
-        $this->Lexer->addEntryPattern('<bibtex(?=.*</bibtex>)', $mode, 'plugin_papers');
-        $this->Lexer->addEntryPattern('<papers(.+?)(?=.*</papers>)', $mode, 'plugin_papers');
+        $this->Lexer->addEntryPattern('<bibtex>(?=.*</bibtex>)', $mode, 'plugin_papers');
+        $this->Lexer->addEntryPattern('<papers>(?=.*</papers>)', $mode, 'plugin_papers');
     }
 
     function postConnect()
@@ -45,20 +45,42 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
     function handle($match, $state, $pos, &$handler)
     {
+        static $tag;
         switch ($state)
         {
             case DOKU_LEXER_ENTER :
-                return array($state, array());
+                $tag = substr($match, 1 ,6); // FIXME : Ugly!
+                return array($state, $tag, array());
  
             case DOKU_LEXER_UNMATCHED :
-                $bibtex = new BibtexParserGoga();
-                $bibtex->read_text($match);
-                $bibtex->select();
-                $bibtex->sort();
-                return array($state, $bibtex);
+                if ($tag === 'papers') // Parse <papers>...</papers>
+                {
+                    $bibtex = new BibtexParserTeam();
+                    $bibtex->read_file(wikiFN($this->getConf('bibtex')));
+                    $spec = array();
+                    $fields = preg_split('/\s*\n\s*/u', $match);
+                    foreach ($fields as &$f)
+                    {
+                        if (preg_match('/\s*(\w+?)\s*=\s*(.*)/u', $f, $m))
+                        {
+                            $spec[$m[1]] = '/' . $m[2] . '/u';
+                        }
+                    }
+                    $bibtex->select($spec);
+                    $bibtex->sort();
+                    return array($state, $tag, $bibtex);
+                }
+                elseif ($this->tag === 'bibtex')
+                {
+                    $bibtex = new BibtexParserTeam();
+                    $bibtex->read_text($match);
+                    $bibtex->select();
+                    $bibtex->sort();
+                    return array($state, $tag, $bibtex);
+                }
         
             case DOKU_LEXER_EXIT :
-                return array($state, '');
+                return array($state, $tag, '');
         }
         return array();
     }
@@ -66,17 +88,25 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
     function render($mode, &$renderer, $data)
     {
         if ($mode != 'xhtml') return false;
-        list($state, $bibtex) = $data;
+        list($state, $tag, $bibtex) = $data;
         switch ($state)
         {
             case DOKU_LEXER_ENTER: 
                 break;
 
             case DOKU_LEXER_UNMATCHED:
-                $renderer->doc .= $this->format_bibtex($bibtex);
+                if ($tag === 'bibtex')
+                {
+                    $renderer->doc .= $this->format_bibtex($bibtex);
+                }
+                elseif ($tag === 'papers')
+                {
+                    $renderer->doc .= $this->format_bibtex($bibtex, true);
+                }
+
                 break;
 
-            case DOKU_LEXER_EXIT :
+            case DOKU_LEXER_EXIT:
                 break;
         }
         return true;
@@ -88,48 +118,47 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
     }
 
 
-    function format_bibtex(&$bibtex)
+    function format_bibtex(&$bibtex, $raw = false)
     {
         $res = '';
-        $year = '';
-        $year_prev = '';
-        $type = '';
-        $type_prev = '';
+        $year = ''; $year_prev = '';
+        $type = ''; $type_prev = '';
         $in_list = false;
         foreach ($bibtex->SELECTION as &$entry)
         {
-            preg_match('/(\d{4})/u', $entry['year'], $matches);
-            $year = $matches[1];
-            if ($year < $this->getConf('year_min'))
-                break;
-
-            if ($year !== $year_prev)
+            if (!$raw)
             {
-                if ($in_list)
+                preg_match('/(\d{4})/u', $entry['year'], $matches);
+                $year = $matches[1];
+                if ($year < $this->getConf('year_min'))
+                    break;
+
+                if ($year !== $year_prev)
                 {
-                    $res .= "</ol>\n";
-                    $in_list = false;
+                    if ($in_list)
+                    {
+                        $res .= "</ol>\n";
+                        $in_list = false;
+                    }
+
+                    $year_prev = $year;
+                    $type_prev = '';
+                    $res .= "<h2 class=\"sectionedit2\">$year "
+                        . $this->getLang('year') . "</h2>\n";
                 }
 
-                $year_prev = $year;
-                $type_prev = '';
-                //$res .= $this->wikirender('===== ' . $year . ' ' . $this->getLang('year') . '  =====');
-                $res .= "<h2 class=\"sectionedit2\">$year "
-                    . $this->getLang('year') . "</h2>\n";
-            }
-
-            $type = $entry['entry'];
-            if ($type !== $type_prev)
-            {
-                if ($in_list)
+                $type = $entry['entry'];
+                if ($type !== $type_prev)
                 {
-                    $res .= "</ol>\n\n\n";
-                    $in_list = false;
-                }
+                    if ($in_list)
+                    {
+                        $res .= "</ol>\n\n\n";
+                        $in_list = false;
+                    }
 
-                $type_prev = $type;
-                //$res .= $this->wikirender('==== ' . $this->getLang($type) . '  ====');
-                $res .= '<h3 class="sectionedit3">' . $this->getLang($type) . "</h3>\n";
+                    $type_prev = $type;
+                    $res .= '<h3 class="sectionedit3">' . $this->getLang($type) . "</h3>\n";
+                }
             }
 
             if (!$in_list)

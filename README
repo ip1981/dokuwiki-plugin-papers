@@ -24,7 +24,7 @@ no empty line are allowed before </bibtex>
 (Not implemented yet)
 
 <papers>
-author = pashev,
+author = pashev
 year = 2005
 </papers>
 
