@@ -176,7 +176,7 @@ class BibtexParser
  * Example class for very special purpose
  *
  */
-class BibtexParserGoga extends BibtexParser
+class BibtexParserTeam extends BibtexParser
 {
     protected $entry;
 
@@ -538,6 +538,58 @@ class BibtexParserGoga extends BibtexParser
     protected function format_misc()
     {
          return $this->format_article(); // Use @misc for articles in non-reviewed journals
+    }
+}
+
+
+class BibtexParserWorker extends BibtexParserTeam
+{
+    /*
+     * Compare entries for sorting
+     *
+     */
+    protected function cmp_entries(&$a, &$b)
+    {
+        // by entry type
+        $type = array (
+            'article' => 10,
+            'book'    => 20,
+            'inbook'  => 30,
+            'booklet' => 40,
+            'inproceedings' => 50,
+            'grant'    => 1000, // for grants, not for publications ;-)
+            'misc'     => 999999, // We use misc for articles in non-reviewed journals
+        );
+        $x = $type[$a['entry']]; // FIXME : other entry type if needed
+        $y = $type[$b['entry']];
+        if ($x < $y) {return -1;};
+        if ($x > $y) {return  1;};
+
+        // by year (if range - by last year)
+        $x = preg_match('/.*([0-9]{4})/ui', $a['year'], $matches) ? $matches[1] : 0;
+        $y = preg_match('/.*([0-9]{4})/ui', $b['year'], $matches) ? $matches[1] : 0;
+        // die ("$x < $y");
+        if ($x > $y) {return -1;};
+        if ($x < $y) {return  1;};
+
+
+        // by journal importance,
+        // which is defined by order of @STRING commands for BiBTeX
+        // (strings are stored in $this->STRINGS)
+        $x = empty($a['journal']) ? 'NONE' : $a['journal'];
+        $y = empty($b['journal']) ? 'NONE' : $b['journal'];
+        // Not a journal. Maybe grant?
+        if (($x === 'NONE') && ($y === 'NONE'))
+        {   // 'organization' is my (Igor's) extention
+            $x = empty($a['organization']) ? 'NONE' : $a['organization'];
+            $y = empty($b['organization']) ? 'NONE' : $b['organization'];
+        }
+        $x = empty($this->STRINGS_o[$x]) ? 999999 : $this->STRINGS_o[$x];
+        $y = empty($this->STRINGS_o[$y]) ? 999999 : $this->STRINGS_o[$y];
+        if ($x < $y) {return -1;};
+        if ($x > $y) {return  1;};
+
+        return 0;
     }
 }
 
