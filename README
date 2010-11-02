@@ -24,5 +24,6 @@ no empty line are allowed before </bibtex>
 <papers>
 author = pashev
 year = 2005
+source = Публикации
 </papers>
 

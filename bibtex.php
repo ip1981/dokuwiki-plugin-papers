@@ -124,7 +124,7 @@ class BibtexParser
             foreach ($search as $key => $value)
             {
                 $key = strtolower($key);
-                if (!empty($entry[$key]) && !preg_match($value, $entry[$key]))
+                if (!empty($entry[$key]) && !preg_match('/' . $value . '/u', $entry[$key]))
                 {
                     $select = false;
                     break;
@@ -189,6 +189,7 @@ class BibtexParserTeam extends BibtexParser
             'no.'   => array('russian' => '№'),
             'et&nbsp;al.'  => array('russian' =>  'и&nbsp;др.'),
             'Ed.&nbsp;by'  => array('russian' =>  'Под&nbsp;ред.'),
+            'leader'  => array('russian' =>  'рук.'),
         );
 
     protected function _($str)
@@ -259,6 +260,30 @@ class BibtexParserTeam extends BibtexParser
         $this->entry[$field] = $this->latex2html(
             $this->expand_string($this->entry[$field])
             );
+    }
+
+    protected function format_organization() // for @GRANT
+    {
+        $this->format_field_default('organization');
+        $this->entry['organization'] = '<strong>' . $this->entry['organization'] . '</strong>';
+    }
+
+    protected function format_doer() // for @GRANT
+    {
+        $res = '';
+        $authors_array = preg_split('/\s+and\s+/',
+            $this->expand_string($this->entry['doer']));
+       
+        foreach ($authors_array as &$a)
+        {
+            $a = $this->format_author1($a);
+        }
+
+        if(isset($authors_array[1]))
+            $authors_array[0] .= '&nbsp;(' . $this->_('leader') . ')';
+        $res = implode(', ', $authors_array);
+
+        $this->entry['doer'] = $res;
     }
 
     protected function format_pages()
@@ -364,7 +389,7 @@ class BibtexParserTeam extends BibtexParser
         }
         else
         {
-            $res = 'Not implemented for ' . $this->entry['entry'];
+            $res = 'Not implemented for "' . $this->entry['entry'] . '"';
         }
 
         $res .= '.';
@@ -460,7 +485,7 @@ class BibtexParserTeam extends BibtexParser
             $parts[] = $this->entry['year'];
         }
 
-        if (!empty($this->entry['manth']))
+        if (!empty($this->entry['month']))
         {
             $parts[] = $this->entry['month'];
         }
@@ -479,6 +504,39 @@ class BibtexParserTeam extends BibtexParser
         if (!empty($this->entry['pages']))
         {
             $parts[] = $this->entry['pages'];
+        }
+
+        return implode('.&nbsp;&mdash; ', $parts);
+    }
+
+    protected function format_grant()
+    {
+        $parts = array(); // All parts are connected with '.&nbsp;&mdash; '
+
+
+        if (!empty($this->entry['organization']))
+        {
+            $parts[] = $this->entry['organization'];
+        }
+
+        if (!empty($this->entry['number']))
+        {
+            $parts[] = $this->entry['number'];
+        }
+
+        if (!empty($this->entry['title']))
+        {
+            $parts[] = $this->entry['title'];
+        }
+
+        if (!empty($this->entry['year']))
+        {
+            $parts[] = $this->entry['year'];
+        }
+
+        if (!empty($this->entry['doer']))
+        {
+            $parts[] = '<em>' . $this->entry['doer'] . '</em>';
         }
 
         return implode('.&nbsp;&mdash; ', $parts);

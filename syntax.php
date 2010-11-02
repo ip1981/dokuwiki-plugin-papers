@@ -52,26 +52,49 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                 preg_match('/<(\w+)>/', $match, $tmp);
                 $tag = $tmp[1];
                 unset($tmp);
-                return array($state, $tag, array());
+                return array($state, $tag, '', array());
  
             case DOKU_LEXER_UNMATCHED :
                 if ($tag === 'papers') // Parse <papers>...</papers>
                 {
-                    $bibtex = new BibtexParserWorker();
-                    $bibtex->read_file(wikiFN($this->getConf('bibtex')));
                     $spec = array();
                     $fields = preg_split('/\s*\n\s*/u', $match);
                     foreach ($fields as &$f)
                     {
                         if (preg_match('/\s*(\w+?)\s*=\s*(.*)/u', $f, $m))
                         {
-                            $spec[$m[1]] = '/' . $m[2] . '/u';
+                            $spec[$m[1]] = $m[2];
                         }
                     }
+                    $source = '';
+                    if (isset($spec['source']))
+                    {
+                        $source = wikiFN($spec['source']);
+                        unset($spec['source']);
+                    }
+                    else
+                    {
+                        $source = wikiFN($this->getConf('bibtex'));
+                    }
+
+                    $options = array();
+                    foreach(array('raw', 'byyear') as $o)
+                    {
+                        if (isset($spec[$o]))
+                        {
+                            $options[$o] = $spec[$o];
+                            unset($spec[$o]);
+                        }
+                    }
+
+                    $bibtex = (!isset($options['byyear']) || $options['byyear']) ?
+                        new BibtexParserTeam() : new BibtexParserWorker();
+                    $bibtex->read_file($source);
+                    unset($source);
                     $bibtex->select($spec);
                     unset($spec);
                     $bibtex->sort();
-                    return array($state, $tag, $bibtex);
+                    return array($state, $tag, $bibtex, $options);
                 }
                 elseif ($tag === 'bibtex') // Parse <bibtex>...</bibtex>
                 {
@@ -79,11 +102,11 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                     $bibtex->read_text($match);
                     $bibtex->select();
                     $bibtex->sort();
-                    return array($state, $tag, $bibtex);
+                    return array($state, $tag, $bibtex, array());
                 }
         
             case DOKU_LEXER_EXIT :
-                return array($state, $tag, '');
+                return array($state, $tag, '', array());
         }
         return array();
     }
@@ -91,22 +114,14 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
     function render($mode, &$renderer, $data)
     {
         if ($mode != 'xhtml') return false;
-        list($state, $tag, $bibtex) = $data;
+        list($state, $tag, $bibtex, $options) = $data;
         switch ($state)
         {
             case DOKU_LEXER_ENTER: 
                 break;
 
             case DOKU_LEXER_UNMATCHED:
-                if ($tag === 'bibtex')
-                {
-                    $renderer->doc .= $this->format_bibtex($bibtex);
-                }
-                elseif ($tag === 'papers')
-                {
-                    $renderer->doc .= $this->format_bibtex($bibtex, array('raw'=>true));
-                }
-
+                $renderer->doc .= $this->format_bibtex($bibtex, $options);
                 break;
 
             case DOKU_LEXER_EXIT:
@@ -130,12 +145,13 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
         foreach ($bibtex->SELECTION as &$entry)
         {
             // <papers> tag results in just a list of papers
-            if (!isset($options['raw']) || $options['raw'])
+            if (!isset($options['raw']) || !$options['raw'])
             {
                  // No 'Year' title for papers of a worker (team member)
-                if (!isset($options['year']) || $options['year'])
+                if (!isset($options['byyear']) || ($options['byyear']))
                 {
-                    preg_match('/(\d{4})/u', $entry['year'], $matches);
+                    // Remember about ranges: 2009-2010 - take the last year
+                    preg_match('/.*(\d{4})/u', $entry['year'], $matches);
                     $year = $matches[1];
                     if ($year < $this->getConf('year_min'))
                         break;
