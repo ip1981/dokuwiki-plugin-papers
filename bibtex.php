@@ -132,7 +132,7 @@ class BibtexParser
             }
             if ($select)
             {
-                if (!!empty($entry['html']))
+                if (empty($entry['html']))
                 {
                     $entry['html'] = $this->format($entry);
                 }
@@ -544,10 +544,6 @@ class BibtexParserTeam extends BibtexParser
 
 class BibtexParserWorker extends BibtexParserTeam
 {
-    /*
-     * Compare entries for sorting
-     *
-     */
     protected function cmp_entries(&$a, &$b)
     {
         // by entry type

@@ -49,13 +49,15 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
         switch ($state)
         {
             case DOKU_LEXER_ENTER :
-                $tag = substr($match, 1 ,6); // FIXME : Ugly!
+                preg_match('/<(\w+)>/', $match, $tmp);
+                $tag = $tmp[1];
+                unset($tmp);
                 return array($state, $tag, array());
  
             case DOKU_LEXER_UNMATCHED :
                 if ($tag === 'papers') // Parse <papers>...</papers>
                 {
-                    $bibtex = new BibtexParserTeam();
+                    $bibtex = new BibtexParserWorker();
                     $bibtex->read_file(wikiFN($this->getConf('bibtex')));
                     $spec = array();
                     $fields = preg_split('/\s*\n\s*/u', $match);
@@ -67,10 +69,11 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                         }
                     }
                     $bibtex->select($spec);
+                    unset($spec);
                     $bibtex->sort();
                     return array($state, $tag, $bibtex);
                 }
-                elseif ($this->tag === 'bibtex')
+                elseif ($tag === 'bibtex') // Parse <bibtex>...</bibtex>
                 {
                     $bibtex = new BibtexParserTeam();
                     $bibtex->read_text($match);
@@ -101,7 +104,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                 }
                 elseif ($tag === 'papers')
                 {
-                    $renderer->doc .= $this->format_bibtex($bibtex, true);
+                    $renderer->doc .= $this->format_bibtex($bibtex, array('raw'=>true));
                 }
 
                 break;
@@ -118,7 +121,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
     }
 
 
-    function format_bibtex(&$bibtex, $raw = false)
+    function format_bibtex(&$bibtex, $options = array())
     {
         $res = '';
         $year = ''; $year_prev = '';
@@ -126,25 +129,30 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
         $in_list = false;
         foreach ($bibtex->SELECTION as &$entry)
         {
-            if (!$raw)
+            // <papers> tag results in just a list of papers
+            if (!isset($options['raw']) || $options['raw'])
             {
-                preg_match('/(\d{4})/u', $entry['year'], $matches);
-                $year = $matches[1];
-                if ($year < $this->getConf('year_min'))
-                    break;
-
-                if ($year !== $year_prev)
+                 // No 'Year' title for papers of a worker (team member)
+                if (!isset($options['year']) || $options['year'])
                 {
-                    if ($in_list)
-                    {
-                        $res .= "</ol>\n";
-                        $in_list = false;
-                    }
+                    preg_match('/(\d{4})/u', $entry['year'], $matches);
+                    $year = $matches[1];
+                    if ($year < $this->getConf('year_min'))
+                        break;
 
-                    $year_prev = $year;
-                    $type_prev = '';
-                    $res .= "<h2 class=\"sectionedit2\">$year "
-                        . $this->getLang('year') . "</h2>\n";
+                    if ($year !== $year_prev)
+                    {
+                        if ($in_list)
+                        {
+                            $res .= "</ol>\n";
+                            $in_list = false;
+                        }
+
+                        $year_prev = $year;
+                        $type_prev = '';
+                        $res .= "<h2 class=\"sectionedit2\">$year "
+                            . $this->getLang('year') . "</h2>\n";
+                    }
                 }
 
                 $type = $entry['entry'];

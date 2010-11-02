@@ -21,8 +21,6 @@ no empty line are allowed before </bibtex>
 
 2. Publications selected from <bibtex> by some attributes.
 
-(Not implemented yet)
-
 <papers>
 author = pashev
 year = 2005
