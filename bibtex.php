@@ -58,7 +58,7 @@ class BibtexParser
             $this->ENTRIES[$bibent]['id'] = strtolower($matches[2]);
             // e. g. $ENTRIES['pashev_2010_axiom']['entry'] = 'book'
         }
-        elseif (preg_match('/(\w+?)\s*=\s*(.*?)\s*,?$/u', $line, $matches))
+        elseif (preg_match('/(\w+?)\s*=\s*(.*?)\s*,?\s*$/u', $line, $matches))
         {
             $this->ENTRIES[$bibent][strtolower($matches[1])] = $matches[2];
             /* e. g.
