@@ -35,12 +35,14 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
     {
         $this->Lexer->addEntryPattern('<bibtex>(?=.*</bibtex>)', $mode, 'plugin_papers');
         $this->Lexer->addEntryPattern('<papers>(?=.*</papers>)', $mode, 'plugin_papers');
+        $this->Lexer->addEntryPattern('<grants>(?=.*</grants>)', $mode, 'plugin_papers');
     }
 
     function postConnect()
     {
         $this->Lexer->addExitPattern('</bibtex>', 'plugin_papers');
         $this->Lexer->addExitPattern('</papers>', 'plugin_papers');
+        $this->Lexer->addExitPattern('</grants>', 'plugin_papers');
     }
 
     function handle($match, $state, $pos, &$handler)
@@ -55,7 +57,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                 return array($state, $tag, '', array());
  
             case DOKU_LEXER_UNMATCHED :
-                if ($tag === 'papers') // Parse <papers>...</papers>
+                if ($tag === 'papers' || $tag === 'grants')
                 {
                     $spec = array();
                     $fields = preg_split('/\s*\n\s*/u', $match);
@@ -63,9 +65,11 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                     {
                         if (preg_match('/\s*(\w+?)\s*=\s*(.*)/u', $f, $m))
                         {
-                            $spec[$m[1]] = $m[2];
+                            $spec[mb_strtolower($m[1])] = $m[2];
                         }
                     }
+
+                    // begin: display options, not BiBTeX fields
                     $source = '';
                     if (isset($spec['source']))
                     {
@@ -74,7 +78,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                     }
                     else
                     {
-                        $source = wikiFN($this->getConf('bibtex'));
+                        $source = wikiFN($this->getConf($tag));
                     }
 
                     $options = array();
@@ -86,6 +90,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                             unset($spec[$o]);
                         }
                     }
+                    // end: display options, not BiBTeX fields
 
                     $bibtex = (!isset($options['byyear']) || $options['byyear']) ?
                         new BibtexParserTeam() : new BibtexParserWorker();
@@ -96,7 +101,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                     $bibtex->sort();
                     return array($state, $tag, $bibtex, $options);
                 }
-                elseif ($tag === 'bibtex') // Parse <bibtex>...</bibtex>
+                elseif ($tag === 'bibtex')
                 {
                     $bibtex = new BibtexParserTeam();
                     $bibtex->read_text($match);
