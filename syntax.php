@@ -96,6 +96,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                         new BibtexParserTeam() : new BibtexParserWorker();
                     $bibtex->read_file($source);
                     unset($source);
+                    $bibtex->expand_years();
                     $bibtex->select($spec);
                     unset($spec);
                     $bibtex->sort();
@@ -105,6 +106,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                 {
                     $bibtex = new BibtexParserTeam();
                     $bibtex->read_text($match);
+                    $bibtex->expand_years();
                     $bibtex->select();
                     $bibtex->sort();
                     return array($state, $tag, $bibtex, array());
@@ -147,15 +149,16 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
         $year = ''; $year_prev = '';
         $type = ''; $type_prev = '';
         $in_list = false;
+        $dub = array();
+        $byyear = !isset($options['byyear']) || $options['byyear'];
+        $raw = !isset($options['raw']) || !$options['raw'];
+
         foreach ($bibtex->SELECTION as &$entry)
         {
-            // <papers> tag results in just a list of papers
-            if (!isset($options['raw']) || !$options['raw'])
+            if ($raw)
             {
-                 // No 'Year' title for papers of a worker (team member)
-                if (!isset($options['byyear']) || ($options['byyear']))
+                if ($byyear)
                 {
-                    // Remember about ranges: 2009-2010 - take the last year
                     preg_match('/.*(\d{4})/u', $entry['year'], $matches);
                     $year = $matches[1];
                     if ($year < $this->getConf('year_min'))
@@ -189,32 +192,43 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                     $res .= '<h3 class="sectionedit3">' . $this->getLang($type) . "</h3>\n";
                 }
             }
-
             if (!$in_list)
             {
                 $res .= "<ol>\n";
                 $in_list = true;
             }
-            $res .= '<li class="level1"><div class="li" style="padding:0.3em;">' . $entry['html'];
-            
-            $links = array();
-            foreach ($this->getConf('filetypes') as $type)
+
+            /* 
+             * Grants may last for several years.
+             * We dublicate each grant for every year it lasts.
+             * If we sort grants by years first, we display grant in
+             * each year. Otherwise we ignore dublicates.
+             */
+             
+            if (empty($dub[$entry['id']]) || $byyear)
             {
-                $file = $this->getConf('papers_ns') . '/' . $entry['id'] . '.' . mb_strtolower($type);
-                if (file_exists(PAPERS_DATADIR . $file))
+                $dub[$entry['id']] = true;
+                $res .= '<li class="level1"><div class="li" style="padding:0.3em;">' . $entry['html'];
+                
+                $links = array();
+                foreach ($this->getConf('filetypes') as $type)
                 {
-                    $size = round(filesize(PAPERS_DATADIR . $file) / 1024) . ' ' . $this->getLang('KiB');
-                    $links[] = '{{:' . preg_replace('/\//u', ':', $file) . "|$type $size}}";
+                    $file = $this->getConf('papers_ns') . '/' . $entry['id'] . '.' . mb_strtolower($type);
+                    if (file_exists(PAPERS_DATADIR . $file))
+                    {
+                        $size = round(filesize(PAPERS_DATADIR . $file) / 1024) . ' ' . $this->getLang('KiB');
+                        $links[] = '{{:' . preg_replace('/\//u', ':', $file) . "|$type $size}}";
+                    }
                 }
+                if (!empty($links))
+                {
+                    $link_text = $this->wikirender('(' . implode(' | ', $links) . ')');
+                    $link_text = preg_replace('/<\/?p>/u', '', $link_text);
+                    $link_text = preg_replace('/\s+(\d+)\s+/u', '&nbsp;\1&nbsp;', $link_text);
+                    $res .= '<span class="noprint">' . $link_text . '</span>';
+                }
+                $res .=  "</div></li>\n";
             }
-            if (!empty($links))
-            {
-                $link_text = $this->wikirender('(' . implode(' | ', $links) . ')');
-                $link_text = preg_replace('/<\/?p>/u', '', $link_text);
-                $link_text = preg_replace('/\s+(\d+)\s+/u', '&nbsp;\1&nbsp;', $link_text);
-                $res .= '<span class="noprint">' . $link_text . '</span>';
-            }
-            $res .=  "</div></li>\n";
         }
 
 

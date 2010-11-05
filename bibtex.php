@@ -2,7 +2,6 @@
 
 class BibtexParser
 {
-
     public $STRINGS = array(); // @STRING(matveev="В. И. Матвеев") -> 'matveev' => "В. И. Матвеев"
     protected $STRINGS_o = array(); // 'jetp' => 1 - to sort by journal importance
     public $ENTRIES = array();
@@ -107,6 +106,23 @@ class BibtexParser
         }
     }
 
+    public function expand_years()
+    {
+        $entries = array();    //  \/ - no ref!
+        foreach ($this->ENTRIES as $e)
+        {
+            if (!empty($e['years']) && preg_match('/(\d{4})\D+?(\d{4})/', $e['years'], $m))
+            {
+                for ($y = $m[1]; $y <= $m[2]; $y++)
+                {
+                    $e['year'] = $y;
+                    $entries[] = $e;
+                }
+            }
+        }
+        $this->ENTRIES = array_merge($this->ENTRIES, $entries);
+    }
+
     /*
      * $SELECTION keeps only references
      * to BiBTeX entries stored in $ENTRIES
@@ -208,10 +224,8 @@ class BibtexParserTeam extends BibtexParser
      */
     protected function cmp_entries(&$a, &$b)
     {
-        // by year (if range - by last year)
-        $x = preg_match('/.*([0-9]{4})/ui', $a['year'], $matches) ? $matches[1] : 0;
-        $y = preg_match('/.*([0-9]{4})/ui', $b['year'], $matches) ? $matches[1] : 0;
-        // die ("$x < $y");
+        $x = preg_match('/.*([0-9]{4})/u', $a['year'], $matches) ? $matches[1] : 0;
+        $y = preg_match('/.*([0-9]{4})/u', $b['year'], $matches) ? $matches[1] : 0;
         if ($x > $y) {return -1;};
         if ($x < $y) {return  1;};
 
@@ -529,10 +543,15 @@ class BibtexParserTeam extends BibtexParser
             $parts[] = $this->entry['title'];
         }
 
-        if (!empty($this->entry['year']))
+        if (!empty($this->entry['years']))
+        {
+            $parts[] = $this->entry['years'];
+        }
+        elseif (!empty($this->entry['year']))
         {
             $parts[] = $this->entry['year'];
         }
+
 
         if (!empty($this->entry['doer']))
         {
@@ -620,8 +639,8 @@ class BibtexParserWorker extends BibtexParserTeam
         if ($x > $y) {return  1;};
 
         // by year (if range - by last year)
-        $x = preg_match('/.*([0-9]{4})/ui', $a['year'], $matches) ? $matches[1] : 0;
-        $y = preg_match('/.*([0-9]{4})/ui', $b['year'], $matches) ? $matches[1] : 0;
+        $x = preg_match('/.*(\d{4})/u', $a['year'], $matches) ? $matches[1] : 0;
+        $y = preg_match('/.*(\d{4})/u', $b['year'], $matches) ? $matches[1] : 0;
         // die ("$x < $y");
         if ($x > $y) {return -1;};
         if ($x < $y) {return  1;};
