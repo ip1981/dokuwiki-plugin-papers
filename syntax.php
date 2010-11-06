@@ -81,7 +81,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                         $source = wikiFN($this->getConf($tag));
                     }
 
-                    $options = array();
+                    $options = array('byyear' => 0);
                     foreach(array('raw', 'byyear') as $o)
                     {
                         if (isset($spec[$o]))
@@ -198,8 +198,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                 $in_list = true;
             }
 
-            /* 
-             * Grants may last for several years.
+            /* Grants may last for several years.
              * We dublicate each grant for every year it lasts.
              * If we sort grants by years first, we display grant in
              * each year. Otherwise we ignore dublicates.
