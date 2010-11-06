@@ -64,7 +64,6 @@ class BibtexParser
              * $ENTRIES['pashev_2010_axiom']['year'] = 2010
              * $ENTRIES['pashev_2010_axiom']['numpages'] = 68
              * and so on...
-             *
              */
         }
     }
@@ -108,10 +107,11 @@ class BibtexParser
 
     public function expand_years()
     {
-        $entries = array();    //  \/ - no ref!
+        $entries = array();    //  \/ - not a ref!
         foreach ($this->ENTRIES as $e)
         {
-            if (!empty($e['years']) && preg_match('/(\d{4})\D+?(\d{4})/', $e['years'], $m))
+            if (empty($e['year']) && !empty($e['years'])
+                && preg_match('/(\d{4})\D+?(\d{4})/', $e['years'], $m))
             {
                 for ($y = $m[1]; $y <= $m[2]; $y++)
                 {
