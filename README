@@ -1,7 +1,5 @@
 This is a syntax plugin for Dokuwiki (http://www.dokuwiki.org/).
 
-
-
 It introduces two syntax extentions for Dokuwiki:
 
 
@@ -21,9 +19,31 @@ no empty line are allowed before </bibtex>
 
 2. Publications selected from <bibtex> by some attributes.
 
-<papers>
-author = pashev
-year = 2005
-source = Публикации
-</papers>
+Examples:
+
+a) All papers by 'pashev'
+grouped by paper type (article, book, etc.)
+sorted by year descend:
+    <papers>
+    author = pashev
+    </papers>
+
+b) Five recent papers by 'pashev'
+sorted by year descend and paper type:
+    <papers>
+    author = pashev
+    recent=5
+    </papers>
+
+c) Papers of 2009 year, grouped by paper type (article, book, etc.):
+    <papers>
+    year=2009
+    </papers>
+
+d) Papers of 2009 year, grouped by paper type (article, book, etc.)
+taken from wiki page 'all_our_papers':
+    <papers>
+    year=2009
+    source=all_our_papers
+    </papers>
 

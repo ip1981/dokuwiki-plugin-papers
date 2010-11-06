@@ -82,7 +82,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                     }
 
                     $options = array('byyear' => 0);
-                    foreach(array('raw', 'byyear') as $o)
+                    foreach(array('raw', 'byyear', 'recent') as $o)
                     {
                         if (isset($spec[$o]))
                         {
@@ -90,6 +90,12 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                             unset($spec[$o]);
                         }
                     }
+                    if (isset($options['recent']))
+                    {
+                        $options['raw'] = 1;
+                        $options['byyear'] = 1;
+                    }
+
                     // end: display options, not BiBTeX fields
 
                     $bibtex = (!isset($options['byyear']) || $options['byyear']) ?
@@ -152,9 +158,15 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
         $dub = array();
         $byyear = !isset($options['byyear']) || $options['byyear'];
         $raw = !isset($options['raw']) || !$options['raw'];
+        $recent = isset($options['recent']) ? $options['recent'] : 9999999;
+        $count = 0;
 
         foreach ($bibtex->SELECTION as &$entry)
         {
+            $count++;
+            if ($count > $recent)
+                break;
+
             if ($raw)
             {
                 if ($byyear)
