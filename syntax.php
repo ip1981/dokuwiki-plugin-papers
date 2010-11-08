@@ -135,6 +135,9 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
             case DOKU_LEXER_UNMATCHED:
                 $renderer->doc .= $this->format_bibtex($bibtex, $options);
+                // Purge the cache to update depending pages
+                if ($this->getConf('purge-cache') || $tag === 'bibtex')
+                    touch(DOKU_CONF . '/local.php');
                 break;
 
             case DOKU_LEXER_EXIT:
