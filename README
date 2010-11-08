@@ -9,10 +9,6 @@ It introduces two syntax extentions for Dokuwiki:
 Raw BiBTeX data
 </bibtex>
 
-1.1 Notes
-
-For final output to be valid XHTML
-no empty line are allowed before </bibtex>
 
 
 

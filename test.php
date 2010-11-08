@@ -1,15 +1,10 @@
 <?php
 require_once('bibtex.php');
 
-$bibtex = new BibtexParserGoga();
-$bibtex->read_file('example.bib');
-$bibtex->select(array(
-    'author' => '/pashev/',
-    ));
+$bibtex = new BibtexParserTeam();
+$bibtex->read_file('1.bib');
+print $bibtex->export();
 
-
-print_r($bibtex->STRINGS);
-print_r($bibtex->SELECTION);
 
 ?>
 
