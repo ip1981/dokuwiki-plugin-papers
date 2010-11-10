@@ -58,6 +58,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
     function handle($match, $state, $pos, &$handler)
     {
         static $tag;
+        global $ID;
         switch ($state)
         {
             case DOKU_LEXER_ENTER :
@@ -81,15 +82,18 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
                     // begin: display options, not BiBTeX fields
                     $source = '';
+                    $lang = $this->getLangPart($ID);
+                    if (!empty($lang)) $source .= $lang . ':';
                     if (isset($spec['source']))
                     {
-                        $source = wikiFN($spec['source']);
+                        $source .= $spec['source'];
                         unset($spec['source']);
                     }
                     else
                     {
-                        $source = wikiFN($this->getConf($tag));
+                        $source .= $this->getConf($tag);
                     }
+                    $source = wikiFN($source);
 
                     $options = array('byyear' => 0);
                     foreach(array('raw', 'byyear', 'recent') as $o)
@@ -163,7 +167,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
     function getLangPart($id)
     {
-        if (preg_match('/^' . $this->langs_rx . '/', $id, $match))
+        if (preg_match('/^' . $this->langs_rx . ':/', $id, $match))
         {
             return $match[1];
         }
