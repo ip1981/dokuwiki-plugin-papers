@@ -82,17 +82,21 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
                     // begin: display options, not BiBTeX fields
                     $source = '';
-                    $lang = $this->getLangPart($ID);
-                    if (!empty($lang)) $source .= $lang . ':';
                     if (isset($spec['source']))
                     {
-                        $source .= $spec['source'];
+                        $source = $spec['source'];
                         unset($spec['source']);
                     }
                     else
                     {
-                        $source .= $this->getConf($tag);
+                        $source = $this->getConf($tag);
                     }
+
+                    // Prepend language namespace if any and if not in root (:)
+                    $lang = $this->getLangPart($ID);
+                    if (!empty($lang) && !preg_match('/^:/', $source))
+                        $source = $lang . ':' . $source;
+
                     $source = wikiFN($source);
 
                     $options = array('byyear' => 0);
@@ -179,12 +183,18 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
         global $ID;
         global $conf;
 
-        $save_lang = $this->getLangPart($ID);
-        if (!empty($save_lang))
+        $lang = $this->getLangPart($ID);
+        $save_lang = '';
+        if (!empty($lang))
         {
             $save_lang = $conf['lang'];
-            $conf['lang'] = $this->getLangPart($ID);
+            $conf['lang'] = $lang;
         }
+        
+        $papers_ns = $this->getConf('papers_ns');
+        if (!empty($lang) && !preg_match('/^:/', $papers_ns))
+            $papers_ns = $lang . '/' . $papers_ns;
+       // $papers_ns = wikiFN($papers_ns);
 
         $res = '';
         $year = ''; $year_prev = '';
@@ -259,7 +269,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                 $links = array();
                 foreach ($this->getConf('filetypes') as $type)
                 {
-                    $file = $this->getConf('papers_ns') . '/' . $entry['id'] . '.' . mb_strtolower($type);
+                    $file = $papers_ns . '/' . $entry['id'] . '.' . mb_strtolower($type);
                     if (file_exists(PAPERS_DATADIR . $file))
                     {
                         $size = round(filesize(PAPERS_DATADIR . $file) / 1024) . ' ' . $this->getLang('KiB');
