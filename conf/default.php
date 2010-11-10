@@ -12,4 +12,5 @@ $conf['filetypes']   = array('PDF', 'DjVu', 'PS', 'TIFF');
 $conf['papers']  = 'публикации'; // Wiki page with bibtex data
 $conf['grants']  = 'гранты';
 $conf['purge-cache']  = true;
+$conf['languages'] = 'ru, en';
 

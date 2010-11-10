@@ -24,6 +24,16 @@ require_once (DOKU_PLUGIN . 'papers/bibtex.php');
 
 class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 {
+    protected $langs_rx = '';
+    
+    function syntax_plugin_papers()
+    {
+        //print($this->getConf('languages'));
+        $l = preg_replace('/\W+?\s*/u', '|', mb_strtolower($this->getConf('languages')));
+        $this->langs_rx = '(' . $l . ')';
+        //print ($this->langs_rx . "\n");
+    }
+
     function getType() { return 'protected'; }
 
     function getPType() { return 'block'; } // http://www.dokuwiki.org/devel:syntax_plugins#ptype
@@ -151,9 +161,27 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
         return p_render('xhtml', p_get_instructions($text), $info);
     }
 
+    function getLangPart($id)
+    {
+        if (preg_match('/^' . $this->langs_rx . '/', $id, $match))
+        {
+            return $match[1];
+        }
+        return '';
+    }
 
     function format_bibtex(&$bibtex, $options = array())
     {
+        global $ID;
+        global $conf;
+
+        $save_lang = $this->getLangPart($ID);
+        if (!empty($save_lang))
+        {
+            $save_lang = $conf['lang'];
+            $conf['lang'] = $this->getLangPart($ID);
+        }
+
         $res = '';
         $year = ''; $year_prev = '';
         $type = ''; $type_prev = '';
@@ -247,6 +275,8 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
 
 
         $res .= "</ol>\n";
+
+        if (!empty($save_lang)) $conf['lang'] = $save_lang;
         return $res;
     }
 }
