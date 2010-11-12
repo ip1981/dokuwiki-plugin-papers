@@ -9,8 +9,6 @@
 // must be run within Dokuwiki
 if (!defined('DOKU_INC')) die();
 
-if (!defined('DOKU_LF')) define('DOKU_LF', "\n");
-if (!defined('DOKU_TAB')) define('DOKU_TAB', "\t");
 if (!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN', DOKU_INC . 'lib/plugins/');
 
 global $conf;
@@ -154,7 +152,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
             case DOKU_LEXER_UNMATCHED:
                 $renderer->doc .= $this->format_bibtex($bibtex, $options);
                 // Purge the cache to update depending pages
-                if ($this->getConf('purge-cache') || $tag === 'bibtex')
+                if ($this->getConf('purge-cache') && $tag === 'bibtex')
                     touch(DOKU_CONF . '/local.php');
                 break;
 
@@ -190,19 +188,26 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
             $save_lang = $conf['lang'];
             $conf['lang'] = $lang;
         }
-        
-        $papers_ns = $this->getConf('papers_ns');
-        if (!empty($lang) && !preg_match('/^:/', $papers_ns))
-            $papers_ns = $lang . '/' . $papers_ns;
-       // $papers_ns = wikiFN($papers_ns);
 
-        $res = '';
+        $lang_ns = array();
+        $papers_ns = $this->getConf('papers_ns');
+        if (!preg_match('/^:/u', $papers_ns))
+        {
+            $lang_ns[] = '/' . $lang; // look in the same language at first
+        }
+
+        $lang_ns[] = ''; // then in the root namespace
+
+        $papers_ns = preg_replace('/:/u', '/', $papers_ns);
+
+
+        $res  = '';
         $year = ''; $year_prev = '';
         $type = ''; $type_prev = '';
         $in_list = false;
         $dub = array();
         $byyear = !isset($options['byyear']) || $options['byyear'];
-        $raw = !isset($options['raw']) || !$options['raw'];
+        $raw = isset($options['raw']) && $options['raw'];
         $recent = isset($options['recent']) ? $options['recent'] : 9999999;
         $count = 0;
 
@@ -212,7 +217,7 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
             if ($count > $recent)
                 break;
 
-            if ($raw)
+            if (!$raw)
             {
                 if ($byyear)
                 {
@@ -269,11 +274,16 @@ class syntax_plugin_papers extends DokuWiki_Syntax_Plugin
                 $links = array();
                 foreach ($this->getConf('filetypes') as $type)
                 {
-                    $file = $papers_ns . '/' . $entry['id'] . '.' . mb_strtolower($type);
-                    if (file_exists(PAPERS_DATADIR . $file))
+                    $f = $papers_ns . '/' . $entry['id'] . '.' . mb_strtolower($type);
+                    foreach ($lang_ns as $ns)
                     {
-                        $size = round(filesize(PAPERS_DATADIR . $file) / 1024) . ' ' . $this->getLang('KiB');
-                        $links[] = '{{:' . preg_replace('/\//u', ':', $file) . "|$type $size}}";
+                        $file = $ns . '/' . $f;
+                        if (file_exists(PAPERS_DATADIR . $file))
+                        {
+                            $size = round(filesize(PAPERS_DATADIR . $file) / 1024) . ' ' . $this->getLang('KiB');
+                            $links[] = '{{' . preg_replace('/\//u', ':', $file) . "|$type $size}}";
+                            break;
+                        }
                     }
                 }
                 if (!empty($links))
