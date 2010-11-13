@@ -161,6 +161,7 @@ class BibtexParser
     {
         $text = preg_replace('/([^\\\\])~/u', '\\1&nbsp;', $text);
         $text = preg_replace('/<<(.*?)>>/u',    '«\1»',    $text);
+        $text = preg_replace('/``(.*?)\'\'/u',    '“\1”',    $text);
         $text = preg_replace('/(\d+)\s*-{1,3}\s*(\d+)/u',  '\1&ndash;\2',  $text);
         $text = preg_replace('/---/u',  '&mdash;',  $text);
         $text = preg_replace('/--/u',  '&ndash;',  $text);
@@ -348,7 +349,8 @@ class BibtexParserTeam extends BibtexParser
     protected function format_editor()
     {
         $this->format_field_default('editor');
-        $this->entry['editor'] = $this->_('Ed.&nbsp;by') . '&nbsp;' . $this->entry['editor'];
+        $this->entry['editor'] = $this->_('Ed.&nbsp;by')
+            . '&nbsp;' . $this->format_author1($this->entry['editor']);
     }
 
     protected function format_volume()
@@ -370,10 +372,37 @@ class BibtexParserTeam extends BibtexParser
         $this->entry['number'] = $this->_('no.') . '&nbsp;' . $this->entry['number'];
     }
 
+
+
+    /*
+     * И.Н. Пашев   => Пашев И. Н.
+     * Игорь Пашев  => Пашев И.
+     * Иг. Пашев    => Пашев Иг.
+     * Пашев, Игорь Николаевич => Пашев И. Н.
+     * Пашев, И. Н.            => Пашев И. Н.
+     */
     protected function format_author1($author)
     {
-        $res = '';
-        $res = $this->latex2html($author);
+        $res = ''; $aa = array();
+        $author = preg_replace('/\s*\.\s*/', '. ', $this->latex2html($author));
+
+        if ($i = mb_strpos($author, ','))
+        {
+            $main = mb_substr($author, 0, $i);
+            $aa = preg_split('/\s+/u', trim(mb_substr($author, $i+1)));
+        }
+        else
+        {
+            $aa = preg_split('/\s+/u', $author);
+            $main = array_pop($aa);
+        }
+
+        foreach ($aa as &$i)
+           $i =  preg_replace('/^(.)[^.]*$/u', '$1.', $i);
+
+        array_unshift ($aa, $main);
+        $res = implode('&nbsp;', $aa);
+
         return $res;
     }
 
@@ -448,7 +477,7 @@ class BibtexParserTeam extends BibtexParser
 
     protected function format_book()
     {
-        $parts = array(); // All parts are connected with '.&nbsp;&mdash; '
+        $parts = array(); // All parts are joined with '.&nbsp;&mdash; '
 
         $part = '';
         // FIXME : If $this->entry['count_authors'] > 3, place them after title?
@@ -507,7 +536,7 @@ class BibtexParserTeam extends BibtexParser
 
     protected function format_article()
     {
-        $parts = array(); // All parts are connected with '.&nbsp;&mdash; '
+        $parts = array(); // All parts are joined with '.&nbsp;&mdash; '
 
         $part = '';
         // FIXME : If $this->entry['count_authors'] > 3, place them after title?
@@ -556,7 +585,7 @@ class BibtexParserTeam extends BibtexParser
 
     protected function format_grant()
     {
-        $parts = array(); // All parts are connected with '.&nbsp;&mdash; '
+        $parts = array(); // All parts are joined with '.&nbsp;&mdash; '
 
 
         if (!empty($this->entry['organization']))
@@ -595,7 +624,7 @@ class BibtexParserTeam extends BibtexParser
 
     protected function format_inproceedings()
     {
-        $parts = array(); // All parts are connected with '.&nbsp;&mdash; '
+        $parts = array(); // All parts are joined with '.&nbsp;&mdash; '
 
         $part = '';
         if (!empty($this->entry['author']))
