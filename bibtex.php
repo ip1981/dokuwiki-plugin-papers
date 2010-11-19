@@ -573,7 +573,7 @@ class BibtexParserTeam extends BibtexParser
         {
             $part .= (empty($part) ? '' :  ', ') . $this->entry['number'];
         }
-        $parts[] = $part;
+        if (!empty($part)) $parts[] = $part;
        
         if (!empty($this->entry['pages']))
         {
