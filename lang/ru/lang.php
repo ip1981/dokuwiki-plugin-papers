@@ -11,7 +11,7 @@
 // custom language strings for the plugin
 
 $lang['book'] = 'Книги';
-$lang['booklet'] = $lang['book'];
+$lang['booklet'] = 'Брошюры';
 $lang['article'] = 'Статьи в рецензируемых журналах';
 $lang['inproceedings'] = 'Тезисы конференций';
 $lang['misc'] = 'Другие публикации';
