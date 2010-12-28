@@ -185,38 +185,6 @@ class BibtexParser
         return $res;
     }
 
-
-    /*
-     * Export sorted BiBTeX.
-     * Do not use after $this->expand_years()
-     *
-     */
-    public function export()
-    {
-        $res = '';
-        $this->sort();
-        foreach ($this->STRINGS as $key => $value)
-        {
-            $res .= '@STRING (' . $key . '="' . $value . '")' . "\n";
-        }
-
-        $res .= "\n\n";
-        
-        foreach ($this->ENTRIES as $ent)
-        {
-            $res .= '@' . mb_strtoupper($ent['entry']) . ' {' . $ent['id'] . ",\n";
-            $fields = array();
-            foreach($ent as $key => $value)
-            {
-                // Skip our special fields
-                if (!in_array($key, array('id', 'entry')))
-                    $fields[] = mb_strtoupper($key) . '=' . $value;
-            }
-            $res .= implode(",\n", $fields);
-            $res .= "\n}\n\n";
-        }
-        return $res;
-    }
 }
 
 
@@ -299,6 +267,43 @@ class BibtexParserTeam extends BibtexParser
     public function sort()
     {
         usort($this->SELECTION, array($this, 'cmp_entries'));
+    }
+
+    public function sort_all()
+    {
+        usort($this->ENTRIES, array($this, 'cmp_entries'));
+    }
+
+    /*
+     * Export sorted BiBTeX.
+     * Do not use after $this->expand_years()
+     *
+     */
+    public function export()
+    {
+        $res = '';
+        $this->sort_all();
+        foreach ($this->STRINGS as $key => $value)
+        {
+            $res .= '@STRING (' . $key . '="' . $value . '")' . "\n";
+        }
+
+        $res .= "\n\n";
+        
+        foreach ($this->ENTRIES as $ent)
+        {
+            $res .= '@' . mb_strtoupper($ent['entry']) . ' {' . $ent['id'] . ",\n";
+            $fields = array();
+            foreach($ent as $key => $value)
+            {
+                // Skip our special fields
+                if (!in_array($key, array('id', 'entry')))
+                    $fields[] = mb_strtoupper($key) . '=' . $value;
+            }
+            $res .= implode(",\n", $fields);
+            $res .= "\n}\n\n";
+        }
+        return $res;
     }
 
     protected function format_field_default($field)
